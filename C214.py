@@ -19,8 +19,24 @@ import carla
 actor_list = []
 
 #write a function for lidar data which return lidar data which is visualisable
+def lidar_data(point_cloud, lidar_point_cloud_buffer):
+    mrd= np.copy(np.frombuffer(point_cloud.raw_data, dtype=np.dtype('f4')))
+    roi= np.reshape(mrd, (int(mrd.shape[0]/4),4))
+    intensity = roi[:,-1]
+    lidar_points = roi[:,:-1]
+    lidar_points[:,:1] = -lidar_points[:,:1]
+    lidar_point_cloud_buffer['pts']=lidar_points
+    lidar_point_cloud_buffer['intensity']=intensity
 
 #Define a function for initializing lidar sensor
+def generate_lidar_blueprint(blueprint_library):
+    lidar_blueprint = blueprint_library.find('sensor.lidar.ray_cast')
+    lidar_blueprint.set_attribute('channels', str(32))
+    lidar_blueprint.set_attribute('points_per_second', str(50000))
+    lidar_blueprint.set_attribute('rotation_frequency', str(50))
+    lidar_blueprint.set_attribute('range', str(20))
+    return lidar_blueprint
+
 
 
 
@@ -73,6 +89,7 @@ try:
 
 
     #write a sensor.listen() method to return lidar data to lidar_data function
+    sensor.listen(lambda data: lidar_data(data, lidar_point_cloud_buffer))
 
     loopThread = threading.Thread(target=carlaThreadingLoop, args=[world], daemon=True).start()
     anim()
